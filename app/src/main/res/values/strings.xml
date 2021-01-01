@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Wireless Content Transfer</string>
+    <string name="paired_devices">Paired devices</string>
+    <string name="available_devices">Available devices</string>
 </resources>

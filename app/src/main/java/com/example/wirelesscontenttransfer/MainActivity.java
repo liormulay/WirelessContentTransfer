@@ -4,6 +4,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
@@ -25,6 +27,10 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.subjects.BehaviorSubject;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 1;
@@ -32,13 +38,17 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MY_APP_DEBUG_TAG";
     private static final String NAME = "WirelessApp";
     private static final UUID MY_UUID = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
-    private static final int LOCATION_REQUEST_CODE = 2;
 
     private BluetoothAdapter bluetoothAdapter;
 
     private MyBluetoothService.ConnectedThread mConnectedThread;
     private ConnectThread mConnectThread;
     private AcceptThread mInsecureAcceptThread;
+    private WirelessViewModel wirelessViewModel;
+    private RecyclerView pairedRecycler;
+    private DevicesAdapter pairedAdapter;
+    private BehaviorSubject<BluetoothDevice> clickSubject;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,21 +58,21 @@ public class MainActivity extends AppCompatActivity {
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Device doesn't support Bluetooth", Toast.LENGTH_SHORT).show();
             return;
-        } else if (!bluetoothAdapter.isEnabled()) {
+        }
+        if (!bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+        wirelessViewModel = new WirelessViewModel(bluetoothAdapter);
 
         askLocationPermission();
 
-        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-        if (pairedDevices.size() > 0) {
-            // There are paired devices. Get the name and address of each paired device.
-            for (BluetoothDevice device : pairedDevices) {
-                String deviceName = device.getName();
-                String deviceHardwareAddress = device.getAddress(); // MAC address
-            }
-        }
+        initRecyclers();
+
+        compositeDisposable.add(wirelessViewModel.getPairedDevices()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(bluetoothDevices -> pairedAdapter.setDevices(bluetoothDevices)));
+
         Log.d(TAG, bluetoothAdapter.startDiscovery() + "");
         // Register for broadcasts when a device is discovered.
         start();
@@ -70,9 +80,18 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(receiver, filter);
     }
 
+    private void initRecyclers() {
+        pairedRecycler = findViewById(R.id.paired_recycler);
+        clickSubject = BehaviorSubject.create();
+        pairedAdapter = new DevicesAdapter(this, clickSubject);
+        pairedRecycler.setHasFixedSize(true);
+        pairedRecycler.setLayoutManager(new LinearLayoutManager(this));
+        pairedRecycler.setAdapter(pairedAdapter);
+    }
+
     private void askLocationPermission() {
         if (ContextCompat.checkSelfPermission(MainActivity.this,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
@@ -110,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Don't forget to unregister the ACTION_FOUND receiver.
         unregisterReceiver(receiver);
+        compositeDisposable.clear();
     }
 
     private class AcceptThread extends Thread {
@@ -141,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (socket != null) {
-                    Log.d(TAG,"socket.toString() "+socket.toString());
+                    Log.d(TAG, "socket.toString() " + socket.toString());
                     // A connection was accepted. Perform work associated with
                     // the connection in a separate thread.
                     manageMyConnectedSocket(socket);
@@ -152,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     break;
                 }
-                Log.d(TAG,"socket is null");
+                Log.d(TAG, "socket is null");
             }
         }
 
@@ -168,6 +188,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void manageMyConnectedSocket(BluetoothSocket socket) {
         mConnectedThread = new MyBluetoothService.ConnectedThread(socket);
+        mConnectedThread.start();
     }
 
     private class ConnectThread extends Thread {
