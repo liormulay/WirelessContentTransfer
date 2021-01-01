@@ -17,14 +17,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.io.IOException;
-import java.util.Set;
 import java.util.UUID;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -47,8 +44,10 @@ public class MainActivity extends AppCompatActivity {
     private WirelessViewModel wirelessViewModel;
     private RecyclerView pairedRecycler;
     private DevicesAdapter pairedAdapter;
-    private BehaviorSubject<BluetoothDevice> clickSubject;
-    private CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private RecyclerView availableRecycler;
+    private DevicesAdapter availableAdapter;
+    private BehaviorSubject<BluetoothDevice> clickSubject = BehaviorSubject.create();
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,11 +81,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void initRecyclers() {
         pairedRecycler = findViewById(R.id.paired_recycler);
-        clickSubject = BehaviorSubject.create();
+        availableRecycler = findViewById(R.id.available_recycler);
         pairedAdapter = new DevicesAdapter(this, clickSubject);
-        pairedRecycler.setHasFixedSize(true);
-        pairedRecycler.setLayoutManager(new LinearLayoutManager(this));
-        pairedRecycler.setAdapter(pairedAdapter);
+        availableAdapter = new DevicesAdapter(this, clickSubject);
+        initRecycler(pairedRecycler, pairedAdapter);
+        initRecycler(availableRecycler, availableAdapter);
+    }
+
+    private void initRecycler(RecyclerView recyclerView, DevicesAdapter devicesAdapter) {
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(devicesAdapter);
     }
 
     private void askLocationPermission() {
@@ -105,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                availableAdapter.addDevice(device);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
                 Log.d(TAG, "deviceName " + deviceName);

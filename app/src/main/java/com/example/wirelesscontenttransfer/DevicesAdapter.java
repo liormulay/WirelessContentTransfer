@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
@@ -27,6 +28,14 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     public void setDevices(List<BluetoothDevice> devices) {
         this.devices = devices;
+        notifyDataSetChanged();
+    }
+
+    public void addDevice(BluetoothDevice bluetoothDevice) {
+        if (devices == null) {
+            devices = new ArrayList<>();
+        }
+        devices.add(bluetoothDevice);
         notifyDataSetChanged();
     }
 
