@@ -32,9 +32,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 1;
 
-    private static final String TAG = "MY_APP_DEBUG_TAG";
-    private static final String NAME = "WirelessApp";
-    private static final UUID MY_UUID = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
+    public static final String TAG = "MY_APP_DEBUG_TAG";
+    public static final UUID MY_UUID = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
 
     private BluetoothAdapter bluetoothAdapter;
 
@@ -74,9 +73,14 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, bluetoothAdapter.startDiscovery() + "");
         // Register for broadcasts when a device is discovered.
-        start();
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        start();
     }
 
     private void initRecyclers() {
@@ -138,59 +142,6 @@ public class MainActivity extends AppCompatActivity {
         compositeDisposable.clear();
     }
 
-    private class AcceptThread extends Thread {
-
-        private final BluetoothServerSocket mmServerSocket;
-
-        public AcceptThread() {
-            // Use a temporary object that is later assigned to mmServerSocket
-            // because mmServerSocket is final.
-            BluetoothServerSocket tmp = null;
-            try {
-                // MY_UUID is the app's UUID string, also used by the client code.
-                tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG, "Socket's listen() method failed", e);
-            }
-            mmServerSocket = tmp;
-        }
-
-        public void run() {
-            BluetoothSocket socket = null;
-            // Keep listening until exception occurs or a socket is returned.
-            while (true) {
-                try {
-                    socket = mmServerSocket.accept();
-                } catch (IOException e) {
-                    Log.e(TAG, "Socket's accept() method failed", e);
-                    break;
-                }
-
-                if (socket != null) {
-                    Log.d(TAG, "socket.toString() " + socket.toString());
-                    // A connection was accepted. Perform work associated with
-                    // the connection in a separate thread.
-                    manageMyConnectedSocket(socket);
-                    try {
-                        mmServerSocket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    break;
-                }
-                Log.d(TAG, "socket is null");
-            }
-        }
-
-        // Closes the connect socket and causes the thread to finish.
-        public void cancel() {
-            try {
-                mmServerSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Could not close the connect socket", e);
-            }
-        }
-    }
 
     private void manageMyConnectedSocket(BluetoothSocket socket) {
         mConnectedThread = new MyBluetoothService.ConnectedThread(socket);
@@ -263,8 +214,11 @@ public class MainActivity extends AppCompatActivity {
             mConnectThread = null;
         }
         if (mInsecureAcceptThread == null) {
-            mInsecureAcceptThread = new AcceptThread();
+            BehaviorSubject<BluetoothSocket> socketSubject = BehaviorSubject.create();
+            mInsecureAcceptThread = new AcceptThread(bluetoothAdapter, socketSubject);
             mInsecureAcceptThread.start();
+            compositeDisposable.add(socketSubject
+            .subscribe(this::manageMyConnectedSocket));
         }
     }
 
