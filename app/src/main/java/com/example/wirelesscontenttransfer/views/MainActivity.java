@@ -1,4 +1,4 @@
-package com.example.wirelesscontenttransfer;
+package com.example.wirelesscontenttransfer.views;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,7 +10,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -24,7 +23,14 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import java.io.IOException;
+import com.example.wirelesscontenttransfer.AcceptThread;
+import com.example.wirelesscontenttransfer.ConnectThread;
+import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
+import com.example.wirelesscontenttransfer.MyBluetoothService;
+import com.example.wirelesscontenttransfer.listeners.OnConnectListener;
+import com.example.wirelesscontenttransfer.R;
+import com.example.wirelesscontenttransfer.viewmodels.WirelessViewModel;
+
 import java.util.UUID;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;

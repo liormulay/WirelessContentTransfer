@@ -1,4 +1,4 @@
-package com.example.wirelesscontenttransfer;
+package com.example.wirelesscontenttransfer.views;
 
 import android.bluetooth.BluetoothDevice;
 import android.graphics.Color;
@@ -8,6 +8,9 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.wirelesscontenttransfer.listeners.OnConnectListener;
+import com.example.wirelesscontenttransfer.R;
 
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 

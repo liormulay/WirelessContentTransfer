@@ -9,8 +9,8 @@ import java.io.IOException;
 
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
-import static com.example.wirelesscontenttransfer.MainActivity.MY_UUID;
-import static com.example.wirelesscontenttransfer.MainActivity.TAG;
+import static com.example.wirelesscontenttransfer.views.MainActivity.MY_UUID;
+import static com.example.wirelesscontenttransfer.views.MainActivity.TAG;
 
 public class AcceptThread extends Thread {
 
