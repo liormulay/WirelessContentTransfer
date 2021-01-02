@@ -19,6 +19,8 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -48,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     private BehaviorSubject<BluetoothDevice> clickSubject = BehaviorSubject.create();
     private BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private ProgressBar progressBar;
+    private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,27 +71,43 @@ public class MainActivity extends AppCompatActivity {
         askLocationPermission();
 
         initRecyclers();
+        progressBar = findViewById(R.id.progressBar);
 
-        compositeDisposable.add(wirelessViewModel.getPairedDevices()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(bluetoothDevices -> pairedAdapter.setDevices(bluetoothDevices)));
-
-        compositeDisposable.add(clickSubject
-                .subscribe(device -> {
-                    ConnectThread connectThread = new ConnectThread(device, bluetoothAdapter, connectSubject);
-                    connectThread.start();
-                }));
-
-        compositeDisposable.add(connectSubject
-                .subscribe(bluetoothSocket -> {
-                    Log.d(TAG, "Connect Success");
-                    manageMyConnectedSocket(bluetoothSocket);
-                }));
+        subscribeToSubjects();
 
         Log.d(TAG, bluetoothAdapter.startDiscovery() + "");
         // Register for broadcasts when a device is discovered.
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
+    }
+
+    private void subscribeToSubjects() {
+        compositeDisposable.add(wirelessViewModel.getPairedDevices()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(bluetoothDevices -> pairedAdapter.setDevices(bluetoothDevices)));
+
+        compositeDisposable.add(clickSubject
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(device -> {
+                    progressBar.setVisibility(View.VISIBLE);
+                    ConnectThread connectThread = new ConnectThread(device, bluetoothAdapter, connectSubject, failedSubject);
+                    connectThread.start();
+                }));
+
+        compositeDisposable.add(connectSubject
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(bluetoothSocket -> {
+                    progressBar.setVisibility(View.GONE);
+                    manageMyConnectedSocket(bluetoothSocket);
+                    Log.d(TAG, "Connect Success");
+                }));
+
+        compositeDisposable.add(failedSubject
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                }));
     }
 
     @Override

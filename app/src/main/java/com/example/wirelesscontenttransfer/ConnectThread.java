@@ -18,10 +18,13 @@ public class ConnectThread extends Thread {
     private final BluetoothDevice mmDevice;
     private final BluetoothAdapter bluetoothAdapter;
     private final BehaviorSubject<BluetoothSocket> socketSubject;
+    private final BehaviorSubject<Exception> failedSubject;
 
-    public ConnectThread(BluetoothDevice device, BluetoothAdapter bluetoothAdapter, BehaviorSubject<BluetoothSocket> socketSubject) {
+    public ConnectThread(BluetoothDevice device, BluetoothAdapter bluetoothAdapter,
+                         BehaviorSubject<BluetoothSocket> socketSubject, BehaviorSubject<Exception> failedSubject) {
         this.bluetoothAdapter = bluetoothAdapter;
         this.socketSubject = socketSubject;
+        this.failedSubject = failedSubject;
         // Use a temporary object that is later assigned to mmSocket
         // because mmSocket is final.
         BluetoothSocket tmp = null;
@@ -47,6 +50,7 @@ public class ConnectThread extends Thread {
             mmSocket.connect();
         } catch (IOException connectException) {
             // Unable to connect; close the socket and return.
+            failedSubject.onNext(connectException);
             Log.d(TAG, Objects.requireNonNull(connectException.getMessage()));
             try {
                 mmSocket.close();
