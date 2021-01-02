@@ -67,7 +67,12 @@ public class MainActivity extends AppCompatActivity {
         if (!bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        } else {
+            doIfBTEnabled();
         }
+    }
+
+    private void doIfBTEnabled() {
         wirelessViewModel = new WirelessViewModel(bluetoothAdapter);
 
         askLocationPermission();
@@ -173,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_ENABLE_BT && resultCode == RESULT_OK) {
             Toast.makeText(this, "Enabling Bluetooth succeeds", Toast.LENGTH_SHORT).show();
+            doIfBTEnabled();
         } else if (resultCode == RESULT_CANCELED) {
             Toast.makeText(this, "Bluetooth was not enabled", Toast.LENGTH_SHORT).show();
         }
