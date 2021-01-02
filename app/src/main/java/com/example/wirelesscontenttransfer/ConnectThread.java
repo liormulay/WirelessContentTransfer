@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
@@ -30,7 +31,7 @@ public class ConnectThread extends Thread {
             // Get a BluetoothSocket to connect with the given BluetoothDevice.
             // MY_UUID is the app's UUID string, also used in the server code.
             tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e(TAG, "Socket's create() method failed", e);
         }
         mmSocket = tmp;
@@ -46,6 +47,7 @@ public class ConnectThread extends Thread {
             mmSocket.connect();
         } catch (IOException connectException) {
             // Unable to connect; close the socket and return.
+            Log.d(TAG, Objects.requireNonNull(connectException.getMessage()));
             try {
                 mmSocket.close();
             } catch (IOException closeException) {

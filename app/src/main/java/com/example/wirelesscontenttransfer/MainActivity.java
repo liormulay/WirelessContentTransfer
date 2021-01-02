@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
 
     public static final String TAG = "MY_APP_DEBUG_TAG";
-    public static final UUID MY_UUID = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
+    public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private BluetoothAdapter bluetoothAdapter;
 
@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView availableRecycler;
     private DevicesAdapter availableAdapter;
     private BehaviorSubject<BluetoothDevice> clickSubject = BehaviorSubject.create();
+    private BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
@@ -70,6 +71,18 @@ public class MainActivity extends AppCompatActivity {
         compositeDisposable.add(wirelessViewModel.getPairedDevices()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bluetoothDevices -> pairedAdapter.setDevices(bluetoothDevices)));
+
+        compositeDisposable.add(clickSubject
+                .subscribe(device -> {
+                    ConnectThread connectThread = new ConnectThread(device, bluetoothAdapter, connectSubject);
+                    connectThread.start();
+                }));
+
+        compositeDisposable.add(connectSubject
+                .subscribe(bluetoothSocket -> {
+                    Log.d(TAG, "Connect Success");
+                    manageMyConnectedSocket(bluetoothSocket);
+                }));
 
         Log.d(TAG, bluetoothAdapter.startDiscovery() + "");
         // Register for broadcasts when a device is discovered.
@@ -162,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
             mInsecureAcceptThread = new AcceptThread(bluetoothAdapter, socketSubject);
             mInsecureAcceptThread.start();
             compositeDisposable.add(socketSubject
-            .subscribe(this::manageMyConnectedSocket));
+                    .subscribe(this::manageMyConnectedSocket));
         }
     }
 
