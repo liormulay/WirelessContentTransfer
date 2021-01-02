@@ -19,10 +19,10 @@ public class AcceptThread extends Thread {
     private final BehaviorSubject<BluetoothSocket> socketSubject;
 
     public AcceptThread(BluetoothAdapter bluetoothAdapter, BehaviorSubject<BluetoothSocket> socketSubject) {
+        this.socketSubject = socketSubject;
         // Use a temporary object that is later assigned to mmServerSocket
         // because mmServerSocket is final.
         BluetoothServerSocket tmp = null;
-        this.socketSubject = socketSubject;
         try {
             // MY_UUID is the app's UUID string, also used by the client code.
             tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
