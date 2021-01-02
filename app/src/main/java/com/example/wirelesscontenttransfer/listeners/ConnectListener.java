@@ -1,5 +1,5 @@
 package com.example.wirelesscontenttransfer.listeners;
 
-public interface OnConnectListener {
+public interface ConnectListener {
     void onConnect();
 }

@@ -9,13 +9,15 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.wirelesscontenttransfer.listeners.OnConnectListener;
+import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
+import com.example.wirelesscontenttransfer.listeners.ConnectListener;
 import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.views.DeviceViewHolder;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
 public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
@@ -24,11 +26,20 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     private List<BluetoothDevice> devices;
 
-    private final BehaviorSubject<Pair<BluetoothDevice, OnConnectListener>> clickedSubject;
+    private final BehaviorSubject<Pair<BluetoothDevice, ConnectListener>> clickedSubject;
 
-    public DevicesAdapter(Context context, BehaviorSubject<Pair<BluetoothDevice, OnConnectListener>> clickedSubject) {
+
+    private final List<AcceptConnectListener> acceptConnectListeners = new ArrayList<>();
+
+    public DevicesAdapter(Context context, BehaviorSubject<Pair<BluetoothDevice,
+            ConnectListener>> clickedSubject) {
         this.context = context;
         this.clickedSubject = clickedSubject;
+
+    }
+
+    public List<AcceptConnectListener> getAcceptConnectListeners() {
+        return acceptConnectListeners;
     }
 
     public void setDevices(List<BluetoothDevice> devices) {
@@ -53,6 +64,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
         holder.bindData(devices.get(position));
+        acceptConnectListeners.add(holder.getAcceptConnectListener());
     }
 
     @Override

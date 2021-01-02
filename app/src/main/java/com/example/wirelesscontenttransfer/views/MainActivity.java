@@ -16,6 +16,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
@@ -27,11 +28,15 @@ import com.example.wirelesscontenttransfer.AcceptThread;
 import com.example.wirelesscontenttransfer.ConnectThread;
 import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
 import com.example.wirelesscontenttransfer.MyBluetoothService;
-import com.example.wirelesscontenttransfer.listeners.OnConnectListener;
+import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
+import com.example.wirelesscontenttransfer.listeners.ConnectListener;
 import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.viewmodels.WirelessViewModel;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
@@ -43,23 +48,24 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = "MY_APP_DEBUG_TAG";
     public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static final int PERMISSIONS_REQUEST_READ_CONTACTS = 2;
 
     private BluetoothAdapter bluetoothAdapter;
 
     private MyBluetoothService.ConnectedThread mConnectedThread;
     private ConnectThread mConnectThread;
     private AcceptThread mInsecureAcceptThread;
-    private WirelessViewModel wirelessViewModel;
+    private WirelessViewModel viewModel;
     private RecyclerView pairedRecycler;
     private DevicesAdapter pairedAdapter;
     private RecyclerView availableRecycler;
     private DevicesAdapter availableAdapter;
-    private BehaviorSubject<Pair<BluetoothDevice, OnConnectListener>> clickSubject = BehaviorSubject.create();
-    private BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
+    private final BehaviorSubject<Pair<BluetoothDevice, ConnectListener>> clickSubject = BehaviorSubject.create();
+    private final BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private ProgressBar progressBar;
     private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
-    private OnConnectListener onConnectListener;
+    private ConnectListener connectListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,10 +82,27 @@ public class MainActivity extends AppCompatActivity {
         } else {
             doIfBTEnabled();
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
+            //After this point you wait for callback in onRequestPermissionsResult(int, String[], int[]) overriden method
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission is granted
+                viewModel.fetchContacts(this);
+            } else {
+                Toast.makeText(this, "Until you grant the permission, we canot display the names", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void doIfBTEnabled() {
-        wirelessViewModel = new WirelessViewModel(bluetoothAdapter);
+        viewModel = new WirelessViewModel(bluetoothAdapter);
 
         askLocationPermission();
         discoverDevice();
@@ -103,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void subscribeToSubjects() {
-        compositeDisposable.add(wirelessViewModel.getPairedDevices()
+        compositeDisposable.add(viewModel.getPairedDevices()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bluetoothDevices -> pairedAdapter.setDevices(bluetoothDevices)));
 
@@ -113,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.VISIBLE);
                     ConnectThread connectThread = new ConnectThread(pair.first, bluetoothAdapter, connectSubject, failedSubject);
                     connectThread.start();
-                    onConnectListener = pair.second;
+                    connectListener = pair.second;
                 }));
 
         compositeDisposable.add(connectSubject
@@ -121,7 +144,8 @@ public class MainActivity extends AppCompatActivity {
                 .subscribe(bluetoothSocket -> {
                     progressBar.setVisibility(View.GONE);
                     manageMyConnectedSocket(bluetoothSocket);
-                    onConnectListener.onConnect();
+                    connectListener.onConnect();
+//                    mConnectedThread.write(viewModel.fetchContacts(MainActivity.this));
                     Log.d(TAG, "Connect Success");
                 }));
 
@@ -133,9 +157,10 @@ public class MainActivity extends AppCompatActivity {
                 }));
     }
 
+
     @Override
-    protected void onPostResume() {
-        super.onPostResume();
+    protected void onResume() {
+        super.onResume();
         start();
     }
 
@@ -219,8 +244,24 @@ public class MainActivity extends AppCompatActivity {
             mInsecureAcceptThread = new AcceptThread(bluetoothAdapter, socketSubject);
             mInsecureAcceptThread.start();
             compositeDisposable.add(socketSubject
-                    .subscribe(this::manageMyConnectedSocket));
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(socket -> {
+                        markConnectDevice(socket.getRemoteDevice().getAddress());
+                        manageMyConnectedSocket(socket);
+                    }));
         }
+    }
+
+    private void markConnectDevice(String address) {
+        List<AcceptConnectListener> acceptConnectListeners = new ArrayList<>();
+        acceptConnectListeners.addAll(pairedAdapter.getAcceptConnectListeners());
+        acceptConnectListeners.addAll(availableAdapter.getAcceptConnectListeners());
+        for (AcceptConnectListener acceptConnectListener : acceptConnectListeners) {
+            if (acceptConnectListener.onConnect(address)) {
+                return;
+            }
+        }
+
     }
 
 
