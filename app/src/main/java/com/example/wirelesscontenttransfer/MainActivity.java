@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         wirelessViewModel = new WirelessViewModel(bluetoothAdapter);
 
         askLocationPermission();
+        discoverDevice();
 
         initRecyclers();
         progressBar = findViewById(R.id.progressBar);
@@ -79,6 +80,13 @@ public class MainActivity extends AppCompatActivity {
         // Register for broadcasts when a device is discovered.
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
+    }
+
+    private void discoverDevice() {
+        Intent discoverableIntent =
+                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+        startActivity(discoverableIntent);
     }
 
     private void subscribeToSubjects() {
