@@ -2,6 +2,7 @@ package com.example.wirelesscontenttransfer;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -19,9 +20,9 @@ public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     private List<BluetoothDevice> devices;
 
-    private final BehaviorSubject<BluetoothDevice> clickedSubject;
+    private final BehaviorSubject<Pair<BluetoothDevice, OnConnectListener>> clickedSubject;
 
-    public DevicesAdapter(Context context, BehaviorSubject<BluetoothDevice> clickedSubject) {
+    public DevicesAdapter(Context context, BehaviorSubject<Pair<BluetoothDevice, OnConnectListener>> clickedSubject) {
         this.context = context;
         this.clickedSubject = clickedSubject;
     }

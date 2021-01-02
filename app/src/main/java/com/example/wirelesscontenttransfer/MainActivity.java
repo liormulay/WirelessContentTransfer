@@ -19,6 +19,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -47,11 +48,12 @@ public class MainActivity extends AppCompatActivity {
     private DevicesAdapter pairedAdapter;
     private RecyclerView availableRecycler;
     private DevicesAdapter availableAdapter;
-    private BehaviorSubject<BluetoothDevice> clickSubject = BehaviorSubject.create();
+    private BehaviorSubject<Pair<BluetoothDevice, OnConnectListener>> clickSubject = BehaviorSubject.create();
     private BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private ProgressBar progressBar;
     private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
+    private OnConnectListener onConnectListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,10 +98,11 @@ public class MainActivity extends AppCompatActivity {
 
         compositeDisposable.add(clickSubject
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(device -> {
+                .subscribe(pair -> {
                     progressBar.setVisibility(View.VISIBLE);
-                    ConnectThread connectThread = new ConnectThread(device, bluetoothAdapter, connectSubject, failedSubject);
+                    ConnectThread connectThread = new ConnectThread(pair.first, bluetoothAdapter, connectSubject, failedSubject);
                     connectThread.start();
+                    onConnectListener = pair.second;
                 }));
 
         compositeDisposable.add(connectSubject
@@ -107,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
                 .subscribe(bluetoothSocket -> {
                     progressBar.setVisibility(View.GONE);
                     manageMyConnectedSocket(bluetoothSocket);
+                    onConnectListener.onConnect();
                     Log.d(TAG, "Connect Success");
                 }));
 
