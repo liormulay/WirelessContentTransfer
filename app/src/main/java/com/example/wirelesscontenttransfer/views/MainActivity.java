@@ -1,13 +1,5 @@
 package com.example.wirelesscontenttransfer.views;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatButton;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -25,12 +17,18 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.example.wirelesscontenttransfer.threads.AcceptThread;
-import com.example.wirelesscontenttransfer.threads.ConnectThread;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
 import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
 import com.example.wirelesscontenttransfer.listeners.ConnectListener;
-import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.viewmodels.WirelessViewModel;
 
 import java.util.ArrayList;
@@ -50,9 +48,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_READ_CONTACTS = 2;
 
     private BluetoothAdapter bluetoothAdapter;
-
-    private ConnectThread mConnectThread;
-    private AcceptThread mInsecureAcceptThread;
     private WirelessViewModel viewModel;
     private RecyclerView pairedRecycler;
     private DevicesAdapter pairedAdapter;
@@ -65,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
     private ConnectListener connectListener;
     private AppCompatButton chooseSource;
+    private final BehaviorSubject<BluetoothSocket> acceptConnect = BehaviorSubject.create();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
         viewModel = new WirelessViewModel(bluetoothAdapter);
 
         askLocationPermission();
-        start();
+        viewModel.startListening(acceptConnect);
         discoverDevice();
 
         initRecyclers();
@@ -144,8 +140,7 @@ public class MainActivity extends AppCompatActivity {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(pair -> {
                     progressBar.setVisibility(View.VISIBLE);
-                    ConnectThread connectThread = new ConnectThread(pair.first, bluetoothAdapter, connectSubject, failedSubject);
-                    connectThread.start();
+                    viewModel.onDeviceClicked(pair.first, connectSubject, failedSubject);
                     connectListener = pair.second;
                 }));
 
@@ -153,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bluetoothSocket -> {
                     progressBar.setVisibility(View.GONE);
-                    viewModel.manageMyConnectedSocket(bluetoothSocket);
+                    viewModel.onConnect(bluetoothSocket);
                     connectListener.onConnect();
                     chooseSource.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Connect Success");
@@ -165,8 +160,14 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
                 }));
-    }
 
+        compositeDisposable.add(acceptConnect
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(bluetoothSocket -> {
+                    markConnectDevice(bluetoothSocket.getRemoteDevice().getAddress());
+                    chooseSource.setVisibility(View.VISIBLE);
+                }));
+    }
 
 
     private void initRecyclers() {
@@ -227,29 +228,6 @@ public class MainActivity extends AppCompatActivity {
         // Don't forget to unregister the ACTION_FOUND receiver.
         unregisterReceiver(receiver);
         compositeDisposable.clear();
-    }
-
-
-    public synchronized void start() {
-        Log.d(TAG, "start");
-
-        // Cancel any thread attempting to make a connection
-        if (mConnectThread != null) {
-            mConnectThread.cancel();
-            mConnectThread = null;
-        }
-        if (mInsecureAcceptThread == null) {
-            BehaviorSubject<BluetoothSocket> socketSubject = BehaviorSubject.create();
-            mInsecureAcceptThread = new AcceptThread(bluetoothAdapter, socketSubject);
-            mInsecureAcceptThread.start();
-            compositeDisposable.add(socketSubject
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(socket -> {
-                        markConnectDevice(socket.getRemoteDevice().getAddress());
-                        chooseSource.setVisibility(View.VISIBLE);
-                        viewModel.manageMyConnectedSocket(socket);
-                    }));
-        }
     }
 
     private void markConnectDevice(String address) {

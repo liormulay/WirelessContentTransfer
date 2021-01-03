@@ -12,7 +12,7 @@ import android.util.Log;
 
 import androidx.lifecycle.ViewModel;
 
-import com.example.wirelesscontenttransfer.threads.ConnectedThread;
+import com.example.wirelesscontenttransfer.MyBluetoothService;
 import com.example.wirelesscontenttransfer.models.Contact;
 
 import java.io.ByteArrayInputStream;
@@ -32,11 +32,12 @@ import static com.example.wirelesscontenttransfer.views.MainActivity.TAG;
 
 public class WirelessViewModel extends ViewModel {
     private final BluetoothAdapter bluetoothAdapter;
-    private BehaviorSubject<Byte[]> bytesSubject = BehaviorSubject.create();
-    private BluetoothSocket socket;
+    private final MyBluetoothService myBluetoothService;
 
     public WirelessViewModel(BluetoothAdapter bluetoothAdapter) {
         this.bluetoothAdapter = bluetoothAdapter;
+        BehaviorSubject<Byte[]> bytesSubject = BehaviorSubject.create();
+        myBluetoothService = new MyBluetoothService(bluetoothAdapter, bytesSubject);
         bytesSubject.subscribe(bytes -> {
             ArrayList<Contact> contacts = bytesToContacts(bytes);
             for (Contact contact : contacts) {
@@ -45,22 +46,21 @@ public class WirelessViewModel extends ViewModel {
         });
     }
 
+    public void startListening(BehaviorSubject<BluetoothSocket> socketSubject) {
+        myBluetoothService.start(socketSubject);
+    }
+
+    public void onDeviceClicked(BluetoothDevice device, BehaviorSubject<BluetoothSocket> connectSubject,
+                                BehaviorSubject<Exception> failedSubject) {
+        myBluetoothService.statConnect(device,connectSubject,failedSubject);
+    }
+
     public Single<List<BluetoothDevice>> getPairedDevices() {
         return Observable.fromIterable(bluetoothAdapter.getBondedDevices())
                 .toList()
                 .subscribeOn(Schedulers.io());
     }
 
-    public ConnectedThread manageMyConnectedSocket(BluetoothSocket socket) {
-        this.socket = socket;
-        ConnectedThread mConnectedThread = new ConnectedThread(socket, bytesSubject);
-        mConnectedThread.start();
-        return mConnectedThread;
-    }
-
-    public ConnectedThread manageMyConnectedSocket() {
-        return manageMyConnectedSocket(this.socket);
-    }
 
     private byte[] fetchContacts(Context context) {
         Uri uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
@@ -106,7 +106,10 @@ public class WirelessViewModel extends ViewModel {
 
     public void transferContacts(Context context) {
         byte[] bytes = fetchContacts(context);
-        ConnectedThread mConnectedThread = manageMyConnectedSocket();
-        mConnectedThread.write(bytes);
+        myBluetoothService.transferContacts(bytes);
+    }
+
+    public void onConnect(BluetoothSocket bluetoothSocket) {
+        myBluetoothService.manageMyConnectedSocket(bluetoothSocket);
     }
 }
