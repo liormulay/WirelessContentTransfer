@@ -38,12 +38,12 @@ public class WirelessViewModel extends ViewModel {
         this.bluetoothAdapter = bluetoothAdapter;
         BehaviorSubject<Byte[]> bytesSubject = BehaviorSubject.create();
         myBluetoothService = new MyBluetoothService(bluetoothAdapter, bytesSubject);
-        bytesSubject.subscribe(bytes -> {
-            ArrayList<Contact> contacts = bytesToContacts(bytes);
-            for (Contact contact : contacts) {
-                Log.d(TAG, "contact: " + contact.getName() + contact.getNumber());
-            }
-        });
+        bytesSubject
+                .subscribe(bytes -> {
+                    Contact contact = bytesToContact(bytes);
+                    if (contact != null)
+                        Log.d(TAG, "contact: " + contact.getName() + contact.getNumber());
+                });
     }
 
     public void startListening(BehaviorSubject<BluetoothSocket> socketSubject) {
@@ -52,7 +52,7 @@ public class WirelessViewModel extends ViewModel {
 
     public void onDeviceClicked(BluetoothDevice device, BehaviorSubject<BluetoothSocket> connectSubject,
                                 BehaviorSubject<Exception> failedSubject) {
-        myBluetoothService.statConnect(device,connectSubject,failedSubject);
+        myBluetoothService.statConnect(device, connectSubject, failedSubject);
     }
 
     public Single<List<BluetoothDevice>> getPairedDevices() {
@@ -62,7 +62,7 @@ public class WirelessViewModel extends ViewModel {
     }
 
 
-    private byte[] fetchContacts(Context context) {
+    private ArrayList<Contact> fetchContacts(Context context) {
         Uri uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
         String[] projection = {ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER};
         ContentResolver contentResolver = context.getContentResolver();
@@ -72,41 +72,33 @@ public class WirelessViewModel extends ViewModel {
             String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
             String number = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
             contacts.add(new Contact(name, number));
-            break;
         }
-        return contactsToBytes(contacts);
+        return contacts;
 
     }
 
 
-    private byte[] contactsToBytes(ArrayList<Contact> contacts) {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = null;
-        try {
-            oos = new ObjectOutputStream(bos);
-            oos.writeObject(contacts);
-            oos.flush();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-
-        }
-        return new byte[0];
-    }
-
-    public static ArrayList<Contact> bytesToContacts(Byte[] data) throws IOException, ClassNotFoundException {
+    public static Contact bytesToContact(Byte[] data) {
         byte[] buf = new byte[data.length];
         for (int i = 0; i < data.length; i++) {
             buf[i] = data[i];
         }
-        ByteArrayInputStream in = new ByteArrayInputStream(buf);
-        ObjectInputStream is = new ObjectInputStream(in);
-        return ((ArrayList<Contact>) is.readObject());
+        try {
+            ByteArrayInputStream in = new ByteArrayInputStream(buf);
+            ObjectInputStream is = new ObjectInputStream(in);
+            Object object = is.readObject();
+            if (object instanceof Contact)
+                return (Contact) object;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void transferContacts(Context context) {
-        byte[] bytes = fetchContacts(context);
-        myBluetoothService.transferContacts(bytes);
+        ArrayList<Contact> contacts = fetchContacts(context);
+        myBluetoothService.transferContacts(contacts);
+
     }
 
     public void onConnect(BluetoothSocket bluetoothSocket) {

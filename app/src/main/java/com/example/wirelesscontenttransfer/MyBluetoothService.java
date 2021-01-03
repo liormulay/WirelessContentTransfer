@@ -6,9 +6,15 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
+import com.example.wirelesscontenttransfer.models.Contact;
 import com.example.wirelesscontenttransfer.threads.AcceptThread;
 import com.example.wirelesscontenttransfer.threads.ConnectThread;
 import com.example.wirelesscontenttransfer.threads.ConnectedThread;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
@@ -64,11 +70,27 @@ public class MyBluetoothService {
     }
 
 
-    public void transferContacts(byte[] bytes) {
+    public void transferContacts(ArrayList<Contact> contacts) {
         ConnectedThread mConnectedThread = manageMyConnectedSocket();
-        mConnectedThread.write(bytes);
+        for (Contact contact : contacts) {
+            mConnectedThread.write(contactToBytes(contact));
+        }
     }
 
+    private byte[] contactToBytes(Contact contact) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = null;
+        try {
+            oos = new ObjectOutputStream(bos);
+            oos.writeObject(contact);
+            oos.flush();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        }
+        return new byte[0];
+    }
 
     public void statConnect(BluetoothDevice device, BehaviorSubject<BluetoothSocket> connectSubject,
                             BehaviorSubject<Exception> failedSubject) {
