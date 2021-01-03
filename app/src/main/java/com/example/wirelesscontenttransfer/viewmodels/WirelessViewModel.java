@@ -12,7 +12,7 @@ import android.util.Log;
 
 import androidx.lifecycle.ViewModel;
 
-import com.example.wirelesscontenttransfer.MyBluetoothService;
+import com.example.wirelesscontenttransfer.threads.ConnectedThread;
 import com.example.wirelesscontenttransfer.models.Contact;
 
 import java.io.ByteArrayInputStream;
@@ -51,14 +51,14 @@ public class WirelessViewModel extends ViewModel {
                 .subscribeOn(Schedulers.io());
     }
 
-    public MyBluetoothService.ConnectedThread manageMyConnectedSocket(BluetoothSocket socket) {
+    public ConnectedThread manageMyConnectedSocket(BluetoothSocket socket) {
         this.socket = socket;
-        MyBluetoothService.ConnectedThread mConnectedThread = new MyBluetoothService.ConnectedThread(socket, bytesSubject);
+        ConnectedThread mConnectedThread = new ConnectedThread(socket, bytesSubject);
         mConnectedThread.start();
         return mConnectedThread;
     }
 
-    public MyBluetoothService.ConnectedThread manageMyConnectedSocket() {
+    public ConnectedThread manageMyConnectedSocket() {
         return manageMyConnectedSocket(this.socket);
     }
 
@@ -106,7 +106,7 @@ public class WirelessViewModel extends ViewModel {
 
     public void transferContacts(Context context) {
         byte[] bytes = fetchContacts(context);
-        MyBluetoothService.ConnectedThread mConnectedThread = manageMyConnectedSocket();
+        ConnectedThread mConnectedThread = manageMyConnectedSocket();
         mConnectedThread.write(bytes);
     }
 }

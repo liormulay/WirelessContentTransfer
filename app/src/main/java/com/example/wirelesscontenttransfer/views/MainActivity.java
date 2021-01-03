@@ -25,8 +25,8 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.example.wirelesscontenttransfer.AcceptThread;
-import com.example.wirelesscontenttransfer.ConnectThread;
+import com.example.wirelesscontenttransfer.threads.AcceptThread;
+import com.example.wirelesscontenttransfer.threads.ConnectThread;
 import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
 import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
 import com.example.wirelesscontenttransfer.listeners.ConnectListener;

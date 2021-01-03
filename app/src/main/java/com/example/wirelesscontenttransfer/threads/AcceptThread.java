@@ -1,4 +1,4 @@
-package com.example.wirelesscontenttransfer;
+package com.example.wirelesscontenttransfer.threads;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
