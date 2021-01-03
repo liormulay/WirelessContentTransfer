@@ -2,6 +2,7 @@ package com.example.wirelesscontenttransfer.views;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -66,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
     private ConnectListener connectListener;
+    private AppCompatButton chooseSource;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
         initRecyclers();
         progressBar = findViewById(R.id.progressBar);
+        chooseSource = findViewById(R.id.choose_source);
 
         subscribeToSubjects();
 
@@ -146,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
                     manageMyConnectedSocket(bluetoothSocket);
                     connectListener.onConnect();
 //                    mConnectedThread.write(viewModel.fetchContacts(MainActivity.this));
+                    chooseSource.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Connect Success");
                 }));
 
@@ -247,6 +251,7 @@ public class MainActivity extends AppCompatActivity {
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(socket -> {
                         markConnectDevice(socket.getRemoteDevice().getAddress());
+                        chooseSource.setVisibility(View.VISIBLE);
                         manageMyConnectedSocket(socket);
                     }));
         }
