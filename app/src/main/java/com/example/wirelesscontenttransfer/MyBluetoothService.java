@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.subjects.BehaviorSubject;
+
 import static android.content.ContentValues.TAG;
 
 public class MyBluetoothService {
@@ -29,9 +32,11 @@ public class MyBluetoothService {
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
         private byte[] mmBuffer; // mmBuffer store for the stream
+        private BehaviorSubject<Byte[]> bytesSubject;
 
-        public ConnectedThread(BluetoothSocket socket) {
+        public ConnectedThread(BluetoothSocket socket, BehaviorSubject<Byte[]> bytesSubject) {
             mmSocket = socket;
+            this.bytesSubject = bytesSubject;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
 
@@ -61,6 +66,8 @@ public class MyBluetoothService {
                 try {
                     // Read from the InputStream.
                     numBytes = mmInStream.read(mmBuffer);
+                    Byte[] bytes = createBytes(mmBuffer, numBytes);
+                    bytesSubject.onNext(bytes);
                     // Send the obtained bytes to the UI activity.
 //                    Message readMsg = handler.obtainMessage(
 //                            MessageConstants.MESSAGE_READ, numBytes, -1,
@@ -73,11 +80,19 @@ public class MyBluetoothService {
             }
         }
 
+        private Byte[] createBytes(byte[] mmBuffer, int numBytes) {
+            Byte[] bytes = new Byte[numBytes];
+            for (int i = 0; i < numBytes; i++) {
+                bytes[i] = mmBuffer[i];
+            }
+            return bytes;
+        }
+
         // Call this from the main activity to send data to the remote device.
         public void write(byte[] bytes) {
             try {
                 mmOutStream.write(bytes);
-
+                Log.d(TAG, "wrote bytes");
                 // Share the sent message with the UI activity.
 //                Message writtenMsg = handler.obtainMessage(
 //                        MessageConstants.MESSAGE_WRITE, -1, -1, bytes);

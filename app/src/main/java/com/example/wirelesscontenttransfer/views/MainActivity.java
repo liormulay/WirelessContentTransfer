@@ -28,7 +28,6 @@ import android.widget.Toast;
 import com.example.wirelesscontenttransfer.AcceptThread;
 import com.example.wirelesscontenttransfer.ConnectThread;
 import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
-import com.example.wirelesscontenttransfer.MyBluetoothService;
 import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
 import com.example.wirelesscontenttransfer.listeners.ConnectListener;
 import com.example.wirelesscontenttransfer.R;
@@ -37,7 +36,6 @@ import com.example.wirelesscontenttransfer.viewmodels.WirelessViewModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
@@ -53,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
 
-    private MyBluetoothService.ConnectedThread mConnectedThread;
     private ConnectThread mConnectThread;
     private AcceptThread mInsecureAcceptThread;
     private WirelessViewModel viewModel;
@@ -84,20 +81,23 @@ public class MainActivity extends AppCompatActivity {
         } else {
             doIfBTEnabled();
         }
+        checkReadContactsPermission();
+    }
+
+    private boolean checkReadContactsPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
-            //After this point you wait for callback in onRequestPermissionsResult(int, String[], int[]) overriden method
+            return false;
         }
+        return true;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                 // Permission is granted
-                viewModel.fetchContacts(this);
-            } else {
                 Toast.makeText(this, "Until you grant the permission, we canot display the names", Toast.LENGTH_SHORT).show();
             }
         }
@@ -107,11 +107,18 @@ public class MainActivity extends AppCompatActivity {
         viewModel = new WirelessViewModel(bluetoothAdapter);
 
         askLocationPermission();
+        start();
         discoverDevice();
 
         initRecyclers();
         progressBar = findViewById(R.id.progressBar);
         chooseSource = findViewById(R.id.choose_source);
+        chooseSource.setOnClickListener(v -> {
+            if (checkReadContactsPermission()) {
+                viewModel.transferContacts(this);
+                chooseSource.setVisibility(View.GONE);
+            }
+        });
 
         subscribeToSubjects();
 
@@ -146,9 +153,8 @@ public class MainActivity extends AppCompatActivity {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bluetoothSocket -> {
                     progressBar.setVisibility(View.GONE);
-                    manageMyConnectedSocket(bluetoothSocket);
+                    viewModel.manageMyConnectedSocket(bluetoothSocket);
                     connectListener.onConnect();
-//                    mConnectedThread.write(viewModel.fetchContacts(MainActivity.this));
                     chooseSource.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Connect Success");
                 }));
@@ -162,11 +168,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        start();
-    }
 
     private void initRecyclers() {
         pairedRecycler = findViewById(R.id.paired_recycler);
@@ -229,12 +230,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void manageMyConnectedSocket(BluetoothSocket socket) {
-        mConnectedThread = new MyBluetoothService.ConnectedThread(socket);
-        mConnectedThread.start();
-    }
-
-
     public synchronized void start() {
         Log.d(TAG, "start");
 
@@ -252,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
                     .subscribe(socket -> {
                         markConnectDevice(socket.getRemoteDevice().getAddress());
                         chooseSource.setVisibility(View.VISIBLE);
-                        manageMyConnectedSocket(socket);
+                        viewModel.manageMyConnectedSocket(socket);
                     }));
         }
     }
