@@ -13,6 +13,7 @@ import android.util.Log;
 import androidx.lifecycle.ViewModel;
 
 import com.example.wirelesscontenttransfer.MyBluetoothService;
+import com.example.wirelesscontenttransfer.listeners.StartReadListener;
 import com.example.wirelesscontenttransfer.models.Contact;
 
 import java.io.ByteArrayInputStream;
@@ -23,8 +24,11 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
@@ -33,17 +37,31 @@ import static com.example.wirelesscontenttransfer.views.MainActivity.TAG;
 public class WirelessViewModel extends ViewModel {
     private final BluetoothAdapter bluetoothAdapter;
     private final MyBluetoothService myBluetoothService;
+    private boolean notifiedRead = false;
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
-    public WirelessViewModel(BluetoothAdapter bluetoothAdapter) {
+    public WirelessViewModel(BluetoothAdapter bluetoothAdapter, StartReadListener startReadListener) {
         this.bluetoothAdapter = bluetoothAdapter;
         BehaviorSubject<Byte[]> bytesSubject = BehaviorSubject.create();
         myBluetoothService = new MyBluetoothService(bluetoothAdapter, bytesSubject);
-        bytesSubject
+        compositeDisposable.add(bytesSubject
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bytes -> {
+                    if (!notifiedRead) {
+                        startReadListener.onStartRead();
+                        notifiedRead = true;
+                    }
                     Contact contact = bytesToContact(bytes);
                     if (contact != null)
                         Log.d(TAG, "contact: " + contact.getName() + contact.getNumber());
-                });
+                }));
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        compositeDisposable.clear();
     }
 
     public void startListening(BehaviorSubject<BluetoothSocket> socketSubject) {

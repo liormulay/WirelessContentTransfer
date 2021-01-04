@@ -29,6 +29,7 @@ import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
 import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
 import com.example.wirelesscontenttransfer.listeners.ConnectListener;
+import com.example.wirelesscontenttransfer.listeners.StartReadListener;
 import com.example.wirelesscontenttransfer.viewmodels.WirelessViewModel;
 
 import java.util.ArrayList;
@@ -100,13 +101,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doIfBTEnabled() {
-        viewModel = new WirelessViewModel(bluetoothAdapter);
-
-        askLocationPermission();
-        viewModel.startListening(acceptConnect);
-        discoverDevice();
-
-        initRecyclers();
         progressBar = findViewById(R.id.progressBar);
         chooseSource = findViewById(R.id.choose_source);
         chooseSource.setOnClickListener(v -> {
@@ -115,6 +109,19 @@ public class MainActivity extends AppCompatActivity {
                 chooseSource.setVisibility(View.GONE);
             }
         });
+        viewModel = new WirelessViewModel(bluetoothAdapter, new StartReadListener() {
+            @Override
+            public void onStartRead() {
+                chooseSource.setVisibility(View.GONE);
+            }
+        });
+
+        askLocationPermission();
+        viewModel.startListening(acceptConnect);
+        discoverDevice();
+
+        initRecyclers();
+
 
         subscribeToSubjects();
 
