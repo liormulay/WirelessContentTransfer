@@ -1,7 +1,6 @@
 package com.example.wirelesscontenttransfer.threads;
 
 import android.bluetooth.BluetoothSocket;
-import android.os.Bundle;
 import android.util.Log;
 
 import java.io.IOException;
@@ -12,15 +11,24 @@ import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
 import static android.content.ContentValues.TAG;
 
+/**
+ * Use this thread to transfer data between devices
+ */
 public class ConnectedThread extends Thread {
-    private final BluetoothSocket mmSocket;
+    /**
+     * Use this to read data
+     */
     private final InputStream mmInStream;
+    /**
+     * use this to write data
+     */
     private final OutputStream mmOutStream;
-    private byte[] mmBuffer; // mmBuffer store for the stream
-    private BehaviorSubject<Byte[]> bytesSubject;
+    /**
+     * Emit the bytes that accepted from source
+     */
+    private final BehaviorSubject<Byte[]> bytesSubject;
 
     public ConnectedThread(BluetoothSocket socket, BehaviorSubject<Byte[]> bytesSubject) {
-        mmSocket = socket;
         this.bytesSubject = bytesSubject;
         InputStream tmpIn = null;
         OutputStream tmpOut = null;
@@ -43,7 +51,8 @@ public class ConnectedThread extends Thread {
     }
 
     public void run() {
-        mmBuffer = new byte[1024];
+        // mmBuffer store for the stream
+        byte[] mmBuffer = new byte[1024];
         int numBytes; // bytes returned from read()
 
         // Keep listening to the InputStream until an exception occurs.
@@ -60,6 +69,12 @@ public class ConnectedThread extends Thread {
         }
     }
 
+    /**
+     * Create array of {@link Byte} objects
+     * @param mmBuffer the array of primitive bytes
+     * @param numBytes the size of bytes that need
+     * @return array of {@link Byte} objects
+     */
     private Byte[] createBytes(byte[] mmBuffer, int numBytes) {
         Byte[] bytes = new Byte[numBytes];
         for (int i = 0; i < numBytes; i++) {

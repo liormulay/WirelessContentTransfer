@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
@@ -31,7 +32,7 @@ public class MyBluetoothService {
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private BluetoothSocket socket;
     private final BehaviorSubject<Byte[]> bytesSubject;
-
+    public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     public MyBluetoothService(BluetoothAdapter bluetoothAdapter, BehaviorSubject<Byte[]> bytesSubject) {
         this.bluetoothAdapter = bluetoothAdapter;
@@ -93,6 +94,12 @@ public class MyBluetoothService {
         return new byte[0];
     }
 
+    /**
+     * Try to connect to another device
+     * @param device that clicked
+     * @param connectSubject emit {@link BluetoothSocket} when connection succeed
+     * @param failedSubject emit {@link Exception} when connection failed
+     */
     public void statConnect(BluetoothDevice device, BehaviorSubject<BluetoothSocket> connectSubject,
                             BehaviorSubject<Exception> failedSubject) {
         mConnectThread = new ConnectThread(device, bluetoothAdapter, connectSubject, failedSubject);

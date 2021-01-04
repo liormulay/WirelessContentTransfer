@@ -9,13 +9,19 @@ import java.io.IOException;
 
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
-import static com.example.wirelesscontenttransfer.views.MainActivity.MY_UUID;
+import static com.example.wirelesscontenttransfer.MyBluetoothService.MY_UUID;
 import static com.example.wirelesscontenttransfer.views.MainActivity.TAG;
 
+/**
+ * Use this thread to accept connection from device that request it
+ */
 public class AcceptThread extends Thread {
 
     private final BluetoothServerSocket mmServerSocket;
     private static final String NAME = "WirelessApp";
+    /**
+     * Emit {@link BluetoothSocket} when connection succeed
+     */
     private final BehaviorSubject<BluetoothSocket> socketSubject;
 
     public AcceptThread(BluetoothAdapter bluetoothAdapter, BehaviorSubject<BluetoothSocket> socketSubject) {

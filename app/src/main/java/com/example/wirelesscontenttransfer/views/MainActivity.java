@@ -45,23 +45,53 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
 
     public static final String TAG = "MY_APP_DEBUG_TAG";
-    public static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final int PERMISSIONS_REQUEST_READ_CONTACTS = 2;
 
     private BluetoothAdapter bluetoothAdapter;
     private WirelessViewModel viewModel;
+    /**
+     * Represent the paired devices
+     */
     private RecyclerView pairedRecycler;
     private DevicesAdapter pairedAdapter;
+    /**
+     * Represent the available devices
+     */
     private RecyclerView availableRecycler;
     private DevicesAdapter availableAdapter;
-    private final BehaviorSubject<Pair<BluetoothDevice, ConnectListener>> clickSubject = BehaviorSubject.create();
-    private final BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
+    /**
+     * Visible when try to connect to another device
+     */
     private ProgressBar progressBar;
-    private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
+    /**
+     * Notify when connection happened
+     */
     private ConnectListener connectListener;
+    /**
+     * User click it to be the source that send data
+     */
     private AppCompatButton chooseSource;
+
+    /**
+     * Notify when connection is failed
+     */
+    private final BehaviorSubject<Exception> failedSubject = BehaviorSubject.create();
+    /**
+     * Notify when device accept connection from another device
+     */
     private final BehaviorSubject<BluetoothSocket> acceptConnect = BehaviorSubject.create();
+    /**
+     * Notify when device from the list is clicked
+     */
+    private final BehaviorSubject<Pair<BluetoothDevice, ConnectListener>> clickSubject = BehaviorSubject.create();
+    /**
+     * Notify after device succeed to connect to another device
+     */
+    private final BehaviorSubject<BluetoothSocket> connectSubject = BehaviorSubject.create();
+    /**
+     * Shown when device is received data
+     */
     private AppCompatTextView receivingDataTextView;
 
     @Override
@@ -91,6 +121,10 @@ public class MainActivity extends AppCompatActivity {
         receivingDataTextView = findViewById(R.id.receiving_data_textView);
     }
 
+    /**
+     * Check if device has permission to read his phone book, if not ask permission
+     * @return true if device has already permission
+     */
     private boolean checkReadContactsPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
@@ -142,6 +176,9 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(receiver, filter);
     }
 
+    /**
+     * Make device discovered
+     */
     private void discoverDevice() {
         Intent discoverableIntent =
                 new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
@@ -209,7 +246,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Create a BroadcastReceiver for ACTION_FOUND.
+    /**
+     * Create a BroadcastReceiver for ACTION_FOUND.
+     * find the devices
+     */
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -246,6 +286,10 @@ public class MainActivity extends AppCompatActivity {
         compositeDisposable.clear();
     }
 
+    /**
+     * Called when device accept connection from another device in order to mark the appropriate device
+     * @param address of the device that is connected to
+     */
     private void markConnectDevice(String address) {
         List<AcceptConnectListener> acceptConnectListeners = new ArrayList<>();
         acceptConnectListeners.addAll(pairedAdapter.getAcceptConnectListeners());

@@ -10,14 +10,22 @@ import java.util.Objects;
 
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
-import static com.example.wirelesscontenttransfer.views.MainActivity.MY_UUID;
+import static com.example.wirelesscontenttransfer.MyBluetoothService.MY_UUID;
 import static com.example.wirelesscontenttransfer.views.MainActivity.TAG;
 
+/**
+ * Use this to connect to another device
+ */
 public class ConnectThread extends Thread {
     private final BluetoothSocket mmSocket;
-    private final BluetoothDevice mmDevice;
     private final BluetoothAdapter bluetoothAdapter;
+    /**
+     * Emit {@link BluetoothSocket} when connection succeed
+     */
     private final BehaviorSubject<BluetoothSocket> socketSubject;
+    /**
+     * Emit {@link Exception} when connection failed
+     */
     private final BehaviorSubject<Exception> failedSubject;
 
     public ConnectThread(BluetoothDevice device, BluetoothAdapter bluetoothAdapter,
@@ -28,7 +36,6 @@ public class ConnectThread extends Thread {
         // Use a temporary object that is later assigned to mmSocket
         // because mmSocket is final.
         BluetoothSocket tmp = null;
-        mmDevice = device;
 
         try {
             // Get a BluetoothSocket to connect with the given BluetoothDevice.
@@ -65,7 +72,9 @@ public class ConnectThread extends Thread {
         socketSubject.onNext(mmSocket);
     }
 
-    // Closes the client socket and causes the thread to finish.
+    /**
+     * Closes the client socket and causes the thread to finish.
+     */
     public void cancel() {
         try {
             mmSocket.close();

@@ -2,6 +2,9 @@ package com.example.wirelesscontenttransfer.models;
 
 import java.io.Serializable;
 
+/**
+ * Contact model to transfer
+ */
 public class Contact implements Serializable {
     private String name;
     private String number;

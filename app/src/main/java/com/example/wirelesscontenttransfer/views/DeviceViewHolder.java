@@ -16,8 +16,17 @@ import com.example.wirelesscontenttransfer.listeners.ConnectListener;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
 public class DeviceViewHolder extends RecyclerView.ViewHolder {
+    /**
+     * Data of view holder
+     */
     private BluetoothDevice bluetoothDevice;
+    /**
+     * If this device is connected to another one then {@link #deviceTextView} text will be at blue
+     */
     private final AppCompatTextView deviceTextView;
+    /**
+     * Called when device accept connection from another device
+     */
     private AcceptConnectListener acceptConnectListener;
 
     public DeviceViewHolder(@NonNull View itemView, BehaviorSubject<Pair<BluetoothDevice, ConnectListener>> clickedSubject) {

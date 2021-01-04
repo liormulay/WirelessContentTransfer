@@ -9,26 +9,33 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
 import com.example.wirelesscontenttransfer.listeners.ConnectListener;
-import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.views.DeviceViewHolder;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
 public class DevicesAdapter extends RecyclerView.Adapter<DeviceViewHolder> {
 
     private final Context context;
 
+    /**
+     * The devices that phone discover
+     */
     private List<BluetoothDevice> devices;
 
+    /**
+     * Notify when user clicked on device
+     */
     private final BehaviorSubject<Pair<BluetoothDevice, ConnectListener>> clickedSubject;
 
-
+    /**
+     * Notify when device accept connection from another device
+     */
     private final List<AcceptConnectListener> acceptConnectListeners = new ArrayList<>();
 
     public DevicesAdapter(Context context, BehaviorSubject<Pair<BluetoothDevice,
