@@ -20,6 +20,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -62,11 +63,13 @@ public class MainActivity extends AppCompatActivity {
     private ConnectListener connectListener;
     private AppCompatButton chooseSource;
     private final BehaviorSubject<BluetoothSocket> acceptConnect = BehaviorSubject.create();
+    private AppCompatTextView receivingDataTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        findViews();
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Device doesn't support Bluetooth", Toast.LENGTH_SHORT).show();
@@ -79,6 +82,14 @@ public class MainActivity extends AppCompatActivity {
             doIfBTEnabled();
         }
         checkReadContactsPermission();
+    }
+
+    private void findViews() {
+        progressBar = findViewById(R.id.progressBar);
+        chooseSource = findViewById(R.id.choose_source);
+        pairedRecycler = findViewById(R.id.paired_recycler);
+        availableRecycler = findViewById(R.id.available_recycler);
+        receivingDataTextView = findViewById(R.id.receiving_data_textView);
     }
 
     private boolean checkReadContactsPermission() {
@@ -101,19 +112,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doIfBTEnabled() {
-        progressBar = findViewById(R.id.progressBar);
-        chooseSource = findViewById(R.id.choose_source);
         chooseSource.setOnClickListener(v -> {
             if (checkReadContactsPermission()) {
                 viewModel.transferContacts(this);
                 chooseSource.setVisibility(View.GONE);
             }
         });
-        viewModel = new WirelessViewModel(bluetoothAdapter, new StartReadListener() {
-            @Override
-            public void onStartRead() {
-                chooseSource.setVisibility(View.GONE);
-            }
+        viewModel = new WirelessViewModel(bluetoothAdapter, () -> {
+            chooseSource.setVisibility(View.GONE);
+            progressBar.setVisibility(View.VISIBLE);
+            receivingDataTextView.setVisibility(View.VISIBLE);
         });
 
         askLocationPermission();
@@ -178,8 +186,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void initRecyclers() {
-        pairedRecycler = findViewById(R.id.paired_recycler);
-        availableRecycler = findViewById(R.id.available_recycler);
         pairedAdapter = new DevicesAdapter(this, clickSubject);
         availableAdapter = new DevicesAdapter(this, clickSubject);
         initRecycler(pairedRecycler, pairedAdapter);

@@ -3,4 +3,5 @@
     <string name="paired_devices">Paired devices</string>
     <string name="available_devices">Available devices</string>
     <string name="choose_for_be_the_source">Choose for be the source</string>
+    <string name="receiving_data">RECEIVING DATA</string>
 </resources>
