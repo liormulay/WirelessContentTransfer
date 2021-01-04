@@ -8,54 +8,40 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
-import android.util.Log;
 
 import androidx.lifecycle.ViewModel;
 
 import com.example.wirelesscontenttransfer.MyBluetoothService;
-import com.example.wirelesscontenttransfer.listeners.StartReadListener;
 import com.example.wirelesscontenttransfer.models.Contact;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
-import static com.example.wirelesscontenttransfer.views.MainActivity.TAG;
-
 public class WirelessViewModel extends ViewModel {
     private final BluetoothAdapter bluetoothAdapter;
     private final MyBluetoothService myBluetoothService;
-    private boolean notifiedRead = false;
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private BehaviorSubject<Byte[]> bytesSubject = BehaviorSubject.create();
+    ;
 
-    public WirelessViewModel(BluetoothAdapter bluetoothAdapter, StartReadListener startReadListener) {
+    public WirelessViewModel(BluetoothAdapter bluetoothAdapter) {
         this.bluetoothAdapter = bluetoothAdapter;
-        BehaviorSubject<Byte[]> bytesSubject = BehaviorSubject.create();
         myBluetoothService = new MyBluetoothService(bluetoothAdapter, bytesSubject);
-        compositeDisposable.add(bytesSubject
+    }
+
+    public Observable<Contact> getReceivedContacts() {
+        return bytesSubject
                 .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(bytes -> {
-                    if (!notifiedRead) {
-                        startReadListener.onStartRead();
-                        notifiedRead = true;
-                    }
-                    Contact contact = bytesToContact(bytes);
-                    if (contact != null)
-                        Log.d(TAG, "contact: " + contact.getName() + contact.getNumber());
-                }));
+                .map(WirelessViewModel::bytesToContact);
     }
 
     @Override
@@ -96,7 +82,7 @@ public class WirelessViewModel extends ViewModel {
     }
 
 
-    public static Contact bytesToContact(Byte[] data) {
+    private static Contact bytesToContact(Byte[] data) {
         byte[] buf = new byte[data.length];
         for (int i = 0; i < data.length; i++) {
             buf[i] = data[i];
@@ -110,13 +96,12 @@ public class WirelessViewModel extends ViewModel {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        return null;
+        return new Contact("exception in read contact","");
     }
 
     public void transferContacts(Context context) {
         ArrayList<Contact> contacts = fetchContacts(context);
         myBluetoothService.transferContacts(contacts);
-        myBluetoothService.cancel();
 
     }
 

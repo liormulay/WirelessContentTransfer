@@ -26,6 +26,7 @@ public class MyBluetoothService {
 
     private ConnectThread mConnectThread;
     private AcceptThread mInsecureAcceptThread;
+    private ConnectedThread mConnectedThread;
     private final BluetoothAdapter bluetoothAdapter;
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private BluetoothSocket socket;
@@ -64,7 +65,7 @@ public class MyBluetoothService {
     }
 
     private ConnectedThread startConnected(BluetoothSocket socket) {
-        ConnectedThread mConnectedThread = new ConnectedThread(socket, bytesSubject);
+        mConnectedThread = new ConnectedThread(socket, bytesSubject);
         mConnectedThread.start();
         return mConnectedThread;
     }
@@ -77,7 +78,7 @@ public class MyBluetoothService {
         }
     }
 
-    private byte[] contactToBytes(Contact contact) {
+    private static byte[] contactToBytes(Contact contact) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream oos = null;
         try {
@@ -98,12 +99,4 @@ public class MyBluetoothService {
         mConnectThread.start();
     }
 
-    public void cancel() {
-        try {
-            socket.close();
-            compositeDisposable.clear();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }

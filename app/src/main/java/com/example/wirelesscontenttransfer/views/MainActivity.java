@@ -30,7 +30,6 @@ import com.example.wirelesscontenttransfer.R;
 import com.example.wirelesscontenttransfer.adapters.DevicesAdapter;
 import com.example.wirelesscontenttransfer.listeners.AcceptConnectListener;
 import com.example.wirelesscontenttransfer.listeners.ConnectListener;
-import com.example.wirelesscontenttransfer.listeners.StartReadListener;
 import com.example.wirelesscontenttransfer.viewmodels.WirelessViewModel;
 
 import java.util.ArrayList;
@@ -118,11 +117,15 @@ public class MainActivity extends AppCompatActivity {
                 chooseSource.setVisibility(View.GONE);
             }
         });
-        viewModel = new WirelessViewModel(bluetoothAdapter, () -> {
-            chooseSource.setVisibility(View.GONE);
-            progressBar.setVisibility(View.VISIBLE);
-            receivingDataTextView.setVisibility(View.VISIBLE);
-        });
+        viewModel = new WirelessViewModel(bluetoothAdapter);
+
+        compositeDisposable.add(viewModel.getReceivedContacts()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(contact -> {
+                    chooseSource.setVisibility(View.GONE);
+                    receivingDataTextView.setVisibility(View.VISIBLE);
+                    Toast.makeText(this, contact.getName() + " " + contact.getNumber(), Toast.LENGTH_SHORT).show();
+                }));
 
         askLocationPermission();
         viewModel.startListening(acceptConnect);
