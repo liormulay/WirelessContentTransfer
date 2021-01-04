@@ -98,6 +98,7 @@ public class WirelessViewModel extends ViewModel {
     public void transferContacts(Context context) {
         ArrayList<Contact> contacts = fetchContacts(context);
         myBluetoothService.transferContacts(contacts);
+        myBluetoothService.cancel();
 
     }
 

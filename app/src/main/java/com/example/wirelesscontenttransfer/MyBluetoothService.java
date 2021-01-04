@@ -27,7 +27,7 @@ public class MyBluetoothService {
     private ConnectThread mConnectThread;
     private AcceptThread mInsecureAcceptThread;
     private final BluetoothAdapter bluetoothAdapter;
-    private CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private BluetoothSocket socket;
     private final BehaviorSubject<Byte[]> bytesSubject;
 
@@ -96,5 +96,14 @@ public class MyBluetoothService {
                             BehaviorSubject<Exception> failedSubject) {
         mConnectThread = new ConnectThread(device, bluetoothAdapter, connectSubject, failedSubject);
         mConnectThread.start();
+    }
+
+    public void cancel() {
+        try {
+            socket.close();
+            compositeDisposable.clear();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
